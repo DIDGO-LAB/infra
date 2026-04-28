@@ -1,0 +1,28 @@
+#!/bin/sh
+set -eu
+
+mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<SQL
+CREATE DATABASE IF NOT EXISTS user_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE DATABASE IF NOT EXISTS training_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE DATABASE IF NOT EXISTS report_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'user_app'@'%' IDENTIFIED BY '${MYSQL_USER_APP_PASSWORD}';
+CREATE USER IF NOT EXISTS 'user_app'@'localhost' IDENTIFIED BY '${MYSQL_USER_APP_PASSWORD}';
+CREATE USER IF NOT EXISTS 'training_app'@'%' IDENTIFIED BY '${MYSQL_TRAINING_APP_PASSWORD}';
+CREATE USER IF NOT EXISTS 'report_app'@'%' IDENTIFIED BY '${MYSQL_REPORT_APP_PASSWORD}';
+
+GRANT ALL PRIVILEGES ON user_db.* TO 'user_app'@'%';
+GRANT ALL PRIVILEGES ON user_db.* TO 'user_app'@'localhost';
+GRANT ALL PRIVILEGES ON training_db.* TO 'training_app'@'%';
+GRANT ALL PRIVILEGES ON report_db.* TO 'report_app'@'%';
+
+FLUSH PRIVILEGES;
+SQL
