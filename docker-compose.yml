@@ -18,12 +18,12 @@ services:
     image: didgo-api-gateway:latest
     container_name: didgo-api-gateway
     environment:
-      SERVER_PORT: 8080
-      JWT_SECRET: local-dev-jwt-secret-key-with-at-least-32-bytes
-      JWT_ISSUER: user-service
-      USER_SERVICE_URI: http://user-service:8080
-      TRAINING_SERVICE_URI: http://training-service:8080
-      CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:3000,http://localhost:5173
+      SERVER_PORT: ${API_GATEWAY_PORT:-8080}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-user-service}
+      USER_SERVICE_URI: ${USER_SERVICE_URI:-http://user-service:8080}
+      TRAINING_SERVICE_URI: ${TRAINING_SERVICE_URI:-http://training-service:8080}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:3000,http://localhost:5173}
     expose:
       - "8080"
     depends_on:
@@ -39,16 +39,16 @@ services:
     image: didgo-user-service:latest
     container_name: didgo-user-service
     environment:
-      SERVER_PORT: 8080
-      DB_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      DB_USERNAME: root
-      DB_PASSWORD: rootpassword
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: local-dev-jwt-secret-key-with-at-least-32-bytes
-      JWT_ISSUER: user-service
-      INTERNAL_API_KEY: local-internal-api-key
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SERVER_PORT: ${USER_SERVICE_PORT:-8080}
+      DB_URL: ${USER_DB_URL:-jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+      DB_USERNAME: ${USER_DB_USERNAME:-root}
+      DB_PASSWORD: ${USER_DB_PASSWORD:-rootpassword}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-user-service}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
     expose:
       - "8080"
     depends_on:
@@ -66,16 +66,16 @@ services:
     image: didgo-training-service:latest
     container_name: didgo-training-service
     environment:
-      SPRING_PROFILES_ACTIVE: local
-      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: ${TRAINING_SERVICE_PROFILE:-local}
+      SERVER_PORT: ${TRAINING_SERVICE_PORT:-8080}
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: training_db
-      DB_USERNAME: root
-      DB_PASSWORD: rootpassword
-      TRUSTED_USER_ID_HEADER: X-User-Id
-      OPENAI_ADAPTER: local-fake
-      OUTBOX_PUBLISHER_ENABLED: false
+      DB_USERNAME: ${TRAINING_DB_USERNAME:-root}
+      DB_PASSWORD: ${TRAINING_DB_PASSWORD:-rootpassword}
+      TRUSTED_USER_ID_HEADER: ${TRUSTED_USER_ID_HEADER:-X-User-Id}
+      OPENAI_ADAPTER: ${OPENAI_ADAPTER:-local-fake}
+      OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-false}
     expose:
       - "8080"
     depends_on:
@@ -89,14 +89,14 @@ services:
     container_name: didgo-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     ports:
       - "3307:3306"
     volumes:
       - didgo_mysql_data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-prootpassword"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
