@@ -1,55 +1,46 @@
 services:
-  gateway:
+  edge-proxy:
     image: nginx:1.27-alpine
-    container_name: msa-gateway
+    container_name: didgo-edge-proxy
     ports:
       - "80:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - user-service
-      - order-service
+      - api-gateway
     networks:
-      - backend
+      - didgo-backend
 
-  mysql:
-    image: mysql:8.0
-    container_name: msa-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-prootpassword"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-    networks:
-      - backend
-
-  redis:
-    image: redis:7.4-alpine
-    container_name: msa-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    networks:
-      - backend
-
-  user-service:
-    image: jangchiwsa-user-service:latest
+  api-gateway:
     build:
-      context: ../services/user-service
+      context: ../api-gateway
       dockerfile: Dockerfile
-    container_name: user-service
+    image: didgo-api-gateway:latest
+    container_name: didgo-api-gateway
     environment:
       SERVER_PORT: 8080
-      DB_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      JWT_SECRET: local-dev-jwt-secret-key-with-at-least-32-bytes
+      JWT_ISSUER: user-service
+      USER_SERVICE_URI: http://user-service:8080
+      TRAINING_SERVICE_URI: http://training-service:8080
+      CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:3000,http://localhost:5173
+    expose:
+      - "8080"
+    depends_on:
+      - user-service
+      - training-service
+    networks:
+      - didgo-backend
+
+  user-service:
+    build:
+      context: ../user-service
+      dockerfile: Dockerfile
+    image: didgo-user-service:latest
+    container_name: didgo-user-service
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       DB_USERNAME: root
       DB_PASSWORD: rootpassword
       REDIS_HOST: redis
@@ -57,7 +48,7 @@ services:
       JWT_SECRET: local-dev-jwt-secret-key-with-at-least-32-bytes
       JWT_ISSUER: user-service
       INTERNAL_API_KEY: local-internal-api-key
-      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
     expose:
       - "8080"
     depends_on:
@@ -66,26 +57,66 @@ services:
       redis:
         condition: service_started
     networks:
-      - backend
+      - didgo-backend
 
-  order-service:
-    image: hashicorp/http-echo:1.0.0
-    container_name: order-service
-    command: ["-listen=:8080", "-text=order-service ok"]
+  training-service:
+    build:
+      context: ../training-service
+      dockerfile: Dockerfile
+    image: didgo-training-service:latest
+    container_name: didgo-training-service
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SERVER_PORT: 8080
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: training_db
+      DB_USERNAME: root
+      DB_PASSWORD: rootpassword
+      TRUSTED_USER_ID_HEADER: X-User-Id
+      OPENAI_ADAPTER: local-fake
+      OUTBOX_PUBLISHER_ENABLED: false
     expose:
       - "8080"
     depends_on:
       mysql:
         condition: service_healthy
     networks:
-      - backend
+      - didgo-backend
+
+  mysql:
+    image: mysql:8.4
+    container_name: didgo-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - didgo_mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - didgo-backend
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: didgo-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - didgo-backend
 
 networks:
-  backend:
-    name: jangchiwsa_backend
-    external: true
+  didgo-backend:
+    name: didgo-backend
 
 volumes:
-  mysql_data:
-    name: jangchiwsa_mysql_data
-    external: true
+  didgo_mysql_data:
+    name: didgo-mysql-data
