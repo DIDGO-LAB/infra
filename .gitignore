@@ -2,3 +2,14 @@
 .env.local
 .idea/
 .DS_Store
+/.npm-cache/
+/infra/
+/services/
+/api-gateway/
+/client/
+/training-service/
+/user-service/
+/node-v22.12.0-win-x64/
+/node-v22.13.0-win-x64/
+/node-v22.12.0-win-x64.zip
+/node-v22.13.0-win-x64.zip

@@ -76,6 +76,8 @@ services:
       TRUSTED_USER_ID_HEADER: ${TRUSTED_USER_ID_HEADER:-X-User-Id}
       OPENAI_ADAPTER: ${OPENAI_ADAPTER:-local-fake}
       OUTBOX_PUBLISHER_ENABLED: ${OUTBOX_PUBLISHER_ENABLED:-false}
+    ports:
+      - "${TRAINING_SERVICE_HOST_PORT:-8082}:8080"
     expose:
       - "8080"
     depends_on:
