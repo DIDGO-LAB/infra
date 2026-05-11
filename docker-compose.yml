@@ -53,8 +53,8 @@ services:
     expose:
       - "8080"
     depends_on:
-      mysql:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
       redis:
         condition: service_started
     networks:
@@ -90,10 +90,34 @@ services:
     expose:
       - "8080"
     depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - didgo-backend
+
+  db-init:
+    image: mysql:8.4
+    container_name: didgo-db-init
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+    command:
+      - sh
+      - -c
+      - |
+        MYSQL_PWD="$${MYSQL_ROOT_PASSWORD}" mysql -hmysql -uroot <<SQL
+        CREATE DATABASE IF NOT EXISTS user_db
+          CHARACTER SET utf8mb4
+          COLLATE utf8mb4_unicode_ci;
+        CREATE DATABASE IF NOT EXISTS training_db
+          CHARACTER SET utf8mb4
+          COLLATE utf8mb4_unicode_ci;
+        SQL
+    depends_on:
       mysql:
         condition: service_healthy
     networks:
       - didgo-backend
+    restart: "no"
 
   mysql:
     image: mysql:8.4
