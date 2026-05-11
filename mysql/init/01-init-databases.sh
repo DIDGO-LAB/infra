@@ -1,7 +1,9 @@
 #!/bin/sh
 set -eu
 
-mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<SQL
+mysql --default-character-set=utf8mb4 -uroot -p"${MYSQL_ROOT_PASSWORD}" <<SQL
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE DATABASE IF NOT EXISTS user_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;

@@ -13,13 +13,13 @@ services:
 
   api-gateway:
     build:
-      context: ../api-gateway
+      context: ./api-gateway
       dockerfile: Dockerfile
     image: didgo-api-gateway:latest
     container_name: didgo-api-gateway
     environment:
       SERVER_PORT: ${API_GATEWAY_PORT:-8080}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-32-bytes-minimum}
       JWT_ISSUER: ${JWT_ISSUER:-user-service}
       USER_SERVICE_URI: ${USER_SERVICE_URI:-http://user-service:8080}
       TRAINING_SERVICE_URI: ${TRAINING_SERVICE_URI:-http://training-service:8080}
@@ -27,6 +27,8 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:3000,http://localhost:5173}
     expose:
       - "8080"
+    ports:
+      - "${API_GATEWAY_HOST_PORT:-8081}:8080"
     depends_on:
       - user-service
       - training-service
@@ -35,20 +37,20 @@ services:
 
   user-service:
     build:
-      context: ../user-service
+      context: ./user-service
       dockerfile: Dockerfile
     image: didgo-user-service:latest
     container_name: didgo-user-service
     environment:
       SERVER_PORT: ${USER_SERVICE_PORT:-8080}
-      DB_URL: ${USER_DB_URL:-jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+      DB_URL: ${USER_DB_URL:-jdbc:mysql://mysql:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci}
       DB_USERNAME: ${USER_DB_USERNAME:-root}
       DB_PASSWORD: ${USER_DB_PASSWORD:-rootpassword}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-32-bytes-minimum}
       JWT_ISSUER: ${JWT_ISSUER:-user-service}
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-local-dev-internal-api-key}
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
     expose:
       - "8080"
@@ -62,12 +64,10 @@ services:
 
   training-service:
     build:
-      context: ../training-service
+      context: ./training-service
       dockerfile: Dockerfile
     image: didgo-training-service:latest
     container_name: didgo-training-service
-    env_file:
-      - ../training-service/.env
     environment:
       SPRING_PROFILES_ACTIVE: ${TRAINING_SERVICE_PROFILE:-local}
       SERVER_PORT: ${TRAINING_SERVICE_PORT:-8080}
@@ -78,6 +78,10 @@ services:
       DB_PASSWORD: ${TRAINING_DB_PASSWORD:-rootpassword}
       TRUSTED_USER_ID_HEADER: ${TRUSTED_USER_ID_HEADER:-X-User-Id}
       OPENAI_ADAPTER: ${OPENAI_ADAPTER:-local-fake}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-30000}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1/responses}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
       OPENAI_REALTIME_URL: ${OPENAI_REALTIME_URL:-wss://api.openai.com/v1/realtime}
       OPENAI_REALTIME_MODEL: ${OPENAI_REALTIME_MODEL:-gpt-realtime-mini}
       OPENAI_REALTIME_VOICE: ${OPENAI_REALTIME_VOICE:-marin}
@@ -119,9 +123,29 @@ services:
       - didgo-backend
     restart: "no"
 
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    image: didgo-client:latest
+    container_name: didgo-client
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8081}
+      VITE_API_MODE: ${VITE_API_MODE:-real}
+    ports:
+      - "${CLIENT_HOST_PORT:-5173}:5173"
+    depends_on:
+      - api-gateway
+    networks:
+      - didgo-backend
+
   mysql:
     image: mysql:8.4
     container_name: didgo-mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --init-connect=SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
