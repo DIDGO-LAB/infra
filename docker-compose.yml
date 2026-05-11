@@ -13,7 +13,7 @@ services:
 
   api-gateway:
     build:
-      context: ./api-gateway
+      context: ../api-gateway
       dockerfile: Dockerfile
     image: didgo-api-gateway:latest
     container_name: didgo-api-gateway
@@ -37,7 +37,7 @@ services:
 
   user-service:
     build:
-      context: ./user-service
+      context: ../user-service
       dockerfile: Dockerfile
     image: didgo-user-service:latest
     container_name: didgo-user-service
@@ -64,7 +64,7 @@ services:
 
   training-service:
     build:
-      context: ./training-service
+      context: ../training-service
       dockerfile: Dockerfile
     image: didgo-training-service:latest
     container_name: didgo-training-service
@@ -125,7 +125,7 @@ services:
 
   client:
     build:
-      context: ./client
+      context: ../client
       dockerfile: Dockerfile
     image: didgo-client:latest
     container_name: didgo-client
