@@ -49,9 +49,9 @@ docker compose up -d --build
 
 `edge-proxy` terminates TLS and forwards requests to `api-gateway`.
 
-- Local development: if `nginx/certs/fullchain.pem` and `nginx/certs/privkey.pem` are missing, the container generates a self-signed `localhost` certificate.
+- Local development: if `nginx/certs/fullchain.pem` and `nginx/certs/privkey.pem` are missing, the container generates a self-signed certificate for `210.96.71.195` and localhost.
 - Production/staging: put the issued certificate files at `nginx/certs/fullchain.pem` and `nginx/certs/privkey.pem` before starting the stack.
-- Browser clients should call the gateway through `https://localhost` locally, or the deployed HTTPS domain in real environments.
+- Browser clients should call the gateway through `http://210.96.71.195:8081` for LAN testing, or the deployed HTTPS domain in real environments.
 
 ## Check
 
